@@ -26,6 +26,8 @@ command | pex
 
 pex will then give you an interactive environment for simple shell-based processing.
 
+Iterate on your shell pipeline. Use up/down/pgup/pgdown to scroll. Use left/right/tab/shift+tab to scroll other columns.
+
 Press escape to exit pex. It'll print the pipeline you worked out.
 
 ### Status
