@@ -2,7 +2,7 @@ pex makes piping easier.
 
 ## Demo
 
-[![asciicast](https://asciinema.org/a/618544.svg)](https://asciinema.org/a/618544)
+[![asciicast](https://asciinema.org/a/GaZBCUlRa7NenRC20jxyxpzRj.svg)](https://asciinema.org/a/GaZBCUlRa7NenRC20jxyxpzRj)
 
 Or with audio, [a narrated pex demo on YouTube](https://youtu.be/84e2zmZ9Dv8).
 
