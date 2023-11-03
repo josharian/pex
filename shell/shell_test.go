@@ -57,7 +57,7 @@ func TestParse(t *testing.T) {
 			in: `echo \\ '\\' "\"" |`,
 			want: []Command{
 				{
-					Argv: []string{"echo", `\\`, `\\`, `\"`},
+					Argv: []string{"echo", `\`, `\\`, `"`},
 					Raw:  `echo \\ '\\' "\""`,
 				},
 				{
