@@ -54,6 +54,20 @@ func TestParse(t *testing.T) {
 			pipes: []int{14, 23},
 		},
 		{
+			in: `echo \\ '\\' "\"" |`,
+			want: []Command{
+				{
+					Argv: []string{"echo", `\\`, `\\`, `\"`},
+					Raw:  `echo \\ '\\' "\""`,
+				},
+				{
+					Argv: nil,
+					Raw:  "",
+				},
+			},
+			pipes: []int{18},
+		},
+		{
 			in: "go test -json -race ./... | jq -s 'map(select(.Test != null)) | sort_by(.Elapsed)'",
 			want: []Command{
 				{
