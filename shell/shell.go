@@ -8,6 +8,7 @@ import (
 	"strings"
 	"unicode"
 
+	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -123,15 +124,16 @@ func Parse(s string) ([]Command, []int, error) {
 		case *syntax.CallExpr:
 			if len(n.Assigns) > 0 {
 				err = fmt.Errorf("variables are not supported")
+				return false
 			}
-			var args []string
-			for _, word := range n.Args {
-				args = append(args, wordToArg(word.Parts))
+			cmd := Command{
+				Raw: s[n.Pos().Offset():n.End().Offset()],
 			}
-			commands = append(commands, Command{
-				Argv: args,
-				Raw:  s[n.Pos().Offset():n.End().Offset()],
-			})
+			cmd.Argv, err = expand.Fields(nil, n.Args...)
+			if err != nil {
+				return false
+			}
+			commands = append(commands, cmd)
 		}
 		return true
 	})
@@ -141,23 +143,6 @@ func Parse(s string) ([]Command, []int, error) {
 	}
 	sort.Slice(pipes, func(i, j int) bool { return pipes[i] < pipes[j] })
 	return commands, pipes, nil
-}
-
-func wordToArg(parts []syntax.WordPart) string {
-	var x []string
-	for _, part := range parts {
-		switch part := part.(type) {
-		case *syntax.Lit:
-			x = append(x, part.Value)
-		case *syntax.SglQuoted:
-			x = append(x, part.Value)
-		case *syntax.DblQuoted:
-			x = append(x, wordToArg(part.Parts))
-		default:
-			panic(fmt.Sprintf("unsupported word part: %T", part))
-		}
-	}
-	return strings.Join(x, "")
 }
 
 func (p Command) Equal(q Command) bool {
