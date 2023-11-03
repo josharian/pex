@@ -295,6 +295,7 @@ func (m *model) updatePagers() []tea.Cmd {
 	// show up to maxPagers pagers,
 	// ensuring that the focused pager is visible
 	slog.Warn("before min/max pager", "min", m.minPager, "max", m.maxPager, "focus", m.focusedPager)
+	m.maxPager = min(m.maxPager, len(m.pagers)-1)
 	if m.focusedPager > m.maxPager {
 		m.maxPager = m.focusedPager
 		m.minPager = max(0, m.maxPager-maxPagers+1)
