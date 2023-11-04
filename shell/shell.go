@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -48,47 +49,22 @@ func Parse(s string) ([]Command, []int, error) {
 		return nil, nil, nil
 	}
 	// First syntax pass: Eliminate anything verboten.
-	// Be very conservative for now.
+	// Be very conservative for now, using an allowlist.
 	syntax.Walk(f, func(n syntax.Node) bool {
 		switch n := n.(type) {
-		case *syntax.IfClause:
-			err = fmt.Errorf("if statements are not supported")
-		case *syntax.Block:
-			err = fmt.Errorf("shell blocks are not supported")
-		case *syntax.Redirect:
-			err = fmt.Errorf("redirects are not supported")
-		case *syntax.CallExpr:
-			if len(n.Assigns) > 0 {
-				err = fmt.Errorf("variables are not supported")
-			}
-		case *syntax.ProcSubst:
-			err = fmt.Errorf("process substitution is not supported")
-		case *syntax.DblQuoted:
-			if n.Dollar {
-				err = fmt.Errorf("dollar in double quotes is not supported")
-			}
-		case *syntax.Subshell:
-			err = fmt.Errorf("subshells are not supported")
-		case *syntax.ParamExp:
-			err = fmt.Errorf("parameter expansion is not supported")
-		case *syntax.CmdSubst:
-			err = fmt.Errorf("command substitution is not supported")
-		case *syntax.ArithmExp:
-			err = fmt.Errorf("arithmetic expansion is not supported")
-		case *syntax.ExtGlob:
-			err = fmt.Errorf("extended globs are not supported")
-		case *syntax.Comment:
-			// comments make it harder to handle trailing pipes
-			err = fmt.Errorf("comments are not supported")
-		case *syntax.BinaryArithm:
-			err = fmt.Errorf("binary arithmetic is not supported")
+		case nil, *syntax.File, *syntax.CallExpr, *syntax.Word,
+			*syntax.Lit, *syntax.SglQuoted, *syntax.DblQuoted:
 		case *syntax.BinaryCmd:
-			switch n.Op {
-			case syntax.AndStmt:
-				err = fmt.Errorf("&& is not supported")
-			case syntax.OrStmt:
-				err = fmt.Errorf("|| is not supported")
+			// TODO: consider supporting |& (syntax.PipeAll) to pipe stderr as well
+			if n.Op != syntax.Pipe {
+				err = fmt.Errorf("%s is not supported", n.Op.String())
 			}
+		case *syntax.Stmt:
+			if n.Negated || n.Background || n.Coprocess {
+				err = fmt.Errorf("negated or background commands are not supported")
+			}
+		default:
+			err = errors.New(notSupported(n)) // all other nodes
 		}
 		return err == nil
 	})
@@ -165,4 +141,35 @@ func (p Command) Args() []string {
 		return nil
 	}
 	return p.Argv[1:]
+}
+
+func notSupported(n syntax.Node) string {
+	switch n := n.(type) {
+	case *syntax.Redirect:
+		return "redirects are not supported"
+	case *syntax.IfClause:
+		return "if clauses are not supported"
+	case *syntax.ForClause:
+		return "for clauses are not supported"
+	case *syntax.Block:
+		return "blocks are not supported"
+	case *syntax.Assign:
+		return "variables are not supported"
+	case *syntax.ProcSubst:
+		return "process substitution is not supported"
+	case *syntax.Subshell:
+		return "subshells are not supported"
+	case *syntax.ParamExp:
+		return "parameter expansion is not supported"
+	case *syntax.CmdSubst:
+		return "command substitution is not supported"
+	case *syntax.ArithmExp, *syntax.ArithmCmd:
+		// TODO: consider supporting ArithmExp, the expand package handles it.
+		return "arithmetic expressions are not supported"
+	case *syntax.Comment:
+		// comments make it harder to handle trailing pipes
+		return "comments are not supported"
+	default: // some fallback; add more human-friendly cases above as needed
+		return fmt.Sprintf("%T nodes are not supported", n)
+	}
 }
