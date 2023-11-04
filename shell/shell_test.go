@@ -124,6 +124,21 @@ func TestParse(t *testing.T) {
 			pipes: []int{6},
 		},
 		{
+			// note these are special quotes in bash mode
+			in: `grep $"foo" $'bar' | `,
+			want: []Command{
+				{
+					Argv: []string{"grep", "$foo", "$bar"},
+					Raw:  `grep $"foo" $'bar'`,
+				},
+				{
+					Argv: nil,
+					Raw:  " ",
+				},
+			},
+			pipes: []int{19},
+		},
+		{
 			in:     "|",
 			errsub: "missing statement before |",
 		},
@@ -138,7 +153,19 @@ func TestParse(t *testing.T) {
 		// TODO: unicode tests
 		{
 			in:     "if true; then echo hi; fi",
-			errsub: "if statements are not supported",
+			errsub: "if clauses are not supported",
+		},
+		{
+			in:     "for x in a b c; do echo y; done",
+			errsub: "for clauses are not supported",
+		},
+		{
+			in:     "! foo",
+			errsub: "negated or background commands are not supported",
+		},
+		{
+			in:     "foo &",
+			errsub: "negated or background commands are not supported",
 		},
 		{
 			in:     "echo hi > /dev/null",
@@ -149,12 +176,36 @@ func TestParse(t *testing.T) {
 			errsub: "comments are not supported",
 		},
 		{
+			in:     "grep x |& ", // bash
+			errsub: "| must be followed by a statement",
+		},
+		{
+			in:     "grep x@(foo) | ", // bash
+			errsub: "extended globs are a bash/mksh feature",
+		},
+		{
 			in:     "grep x || foo",
 			errsub: "|| is not supported",
 		},
 		{
 			in:     "grep x && foo",
 			errsub: "&& is not supported",
+		},
+		{
+			in:     "grep x && foo",
+			errsub: "&& is not supported",
+		},
+		{
+			in:     "{ foo; } |",
+			errsub: "blocks are not supported",
+		},
+		{
+			in:     "grep $((2 + 3))",
+			errsub: "arithmetic expressions are not supported",
+		},
+		{
+			in:     "((2 + 3))", // arithmetic under bash
+			errsub: "subshells are not supported",
 		},
 	}
 
